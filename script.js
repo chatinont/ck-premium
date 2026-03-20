@@ -81,6 +81,10 @@ function renderProducts() {
                         <span class="price-value wholesale">฿${product.priceWholesale}</span>
                     </div>
                 </div>
+
+                <div class="product-card-note">
+                    * ราคาพร้อมเลเซอร์โลโก้ฟรี (ยังไม่รวมค่าจัดส่ง)
+                </div>
             </div>
         `;
         container.appendChild(card);
