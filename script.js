@@ -1,6 +1,6 @@
 const defaultProductData = [
-    { sku: "TB-001", name: "แก้วเยติ 20 oz (กล่องสีนํ้าตาล ฟู๊ดเกรด)", material: "sus 201", capacity: "600 ml", stock: "36000", priceRetail: "65", priceWholesale: "58" },
-    { sku: "TB-002", name: "แก้วเยติ 20 oz ( กล่องสีขาว )", material: "sus 304", capacity: "600 ml", stock: "36000", priceRetail: "65", priceWholesale: "58" }
+    { sku: "TB-001", name: "แก้วเยติ 20 oz (กล่องสีนํ้าตาล ฟู๊ดเกรด)", material: "sus 201", capacity: "20 Oz", priceRetail: "290", priceWholesale: "85" },
+    { sku: "TB-002", name: "แก้วเยติ 20 oz ( กล่องสีขาว )", material: "sus 304", capacity: "20 Oz", priceRetail: "290", priceWholesale: "85" }
 ];
 
 // Load database from localStorage or fallback to default
@@ -17,50 +17,40 @@ const searchInput = document.getElementById('searchInput');
 const totalItemsEl = document.getElementById('totalItems');
 const gridBtn = document.getElementById('grid-view-btn');
 const listBtn = document.getElementById('list-view-btn');
-const exportBtn = document.getElementById('export-btn');
 
-const modal = document.getElementById('imageModal');
-const closeModal = document.querySelector('.close-modal');
-const sizeInput = document.getElementById('sizeInput');
-const imageInput = document.getElementById('imageUrlInput');
-const imagePreview = document.getElementById('imagePreview');
-const placeholderText = document.querySelector('.placeholder-text');
-const saveBtn = document.getElementById('saveImageBtn');
-const removeBtn = document.getElementById('removeImageBtn');
-const modalSkuEl = document.getElementById('modalSku');
+// Filter Elements
+const capacityMultiselect = document.getElementById('capacityMultiselect');
+const capacityOptions = document.getElementById('capacityOptions');
+const retailMultiselect = document.getElementById('retailMultiselect');
+const retailOptions = document.getElementById('retailOptions');
+const wholesaleMultiselect = document.getElementById('wholesaleMultiselect');
+const wholesaleOptions = document.getElementById('wholesaleOptions');
 
-// Get saved images and sizes from LocalStorage
-const getSavedImages = () => JSON.parse(localStorage.getItem('productImages')) || {};
-const saveImagesMap = (map) => localStorage.setItem('productImages', JSON.stringify(map));
-const getSavedSizes = () => JSON.parse(localStorage.getItem('productSizes')) || {};
-const saveSizesMap = (map) => localStorage.setItem('productSizes', JSON.stringify(map));
+let selectedCapacities = [];
+let selectedRetailRanges = [];
+let selectedWholesaleRanges = [];
+
 
 // Render Products
 function renderProducts() {
     container.innerHTML = '';
-    const imagesMap = getSavedImages();
-    const sizesMap = getSavedSizes();
-
     totalItemsEl.textContent = displayedProducts.length;
 
     displayedProducts.forEach(product => {
-        const imageUrl = imagesMap[product.sku] || product.imageUrl;
-        const sizeInfo = sizesMap[product.sku] || product.size || "-";
+        const imageUrl = product.imageUrl;
+        const sizeInfo = product.size || "-";
 
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
-            <div class="product-image-container" onclick="openImageModal('${product.sku}')">
+            <div class="product-image-container">
                 ${imageUrl
-                ? `<img src="${imageUrl}" class="product-image" alt="${product.name}" onerror="this.src=''; this.parentElement.innerHTML='<div class=\\'image-placeholder-icon\\'><svg width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\' ry=\\'2\\'></rect><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'></circle><polyline points=\\'21 15 16 10 5 21\\'></polyline></svg>ภาพเสีย</div><div class=\\'image-overlay\\'><button class=\\'upload-btn\\'>แก้ไขรูปภาพ</button></div>';">`
+                ? `<img src="${imageUrl}" class="product-image" alt="${product.name}" onerror="this.src=''; this.parentElement.innerHTML='<div class=\\'image-placeholder-icon\\'><svg width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\' ry=\\'2\\'></rect><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'></circle><polyline points=\\'21 15 16 10 5 21\\'></polyline></svg>ภาพเสีย</div>';">`
                 : `<div class="image-placeholder-icon">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                         <span>ไม่มีรูปภาพ</span>
                        </div>`
             }
-                <div class="image-overlay">
-                    <button class="upload-btn">${imageUrl ? 'แก้ไขข้อมูล' : '+ เพิ่มรูป/ขนาด'}</button>
-                </div>
             </div>
             <div class="product-info">
                 <div class="product-sku">${product.sku}</div>
@@ -76,10 +66,6 @@ function renderProducts() {
                         <span class="meta-value">${product.capacity}</span>
                     </div>
                     <div class="meta-item">
-                        <span class="meta-label">สต็อก (ลัง)</span>
-                        <span class="meta-value">${product.stock}</span>
-                    </div>
-                    <div class="meta-item">
                         <span class="meta-label">ขนาด</span>
                         <span class="meta-value">${sizeInfo}</span>
                     </div>
@@ -87,7 +73,7 @@ function renderProducts() {
 
                 <div class="product-prices">
                     <div class="price-box retail">
-                        <span class="price-label">ปลีก (50+)</span>
+                        <span class="price-label">ปลีก (1 ใบ)</span>
                         <span class="price-value">฿${product.priceRetail}</span>
                     </div>
                     <div class="price-box wholesale">
@@ -101,15 +87,154 @@ function renderProducts() {
     });
 }
 
-// Search
-searchInput.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    displayedProducts = productData.filter(p =>
-        p.name.toLowerCase().includes(term) ||
-        p.sku.toLowerCase().includes(term)
-    );
-    renderProducts();
+// Search and Filter Logic
+const RETAIL_RANGES = [
+    { label: "ต่ำกว่า 280 บาท", min: 0, max: 279.99 },
+    { label: "280 - 300 บาท", min: 280, max: 300 },
+    { label: "301 - 325 บาท", min: 301, max: 325 },
+    { label: "326 - 350 บาท", min: 326, max: 350 },
+    { label: "350 บาทขึ้นไป", min: 350.01, max: 999999 }
+];
+
+const WHOLESALE_RANGES = [
+    { label: "ต่ำกว่า 70 บาท", min: 0, max: 69.99 },
+    { label: "70 - 90 บาท", min: 70, max: 90 },
+    { label: "91 - 110 บาท", min: 91, max: 110 },
+    { label: "111 - 130 บาท", min: 111, max: 130 },
+    { label: "130 บาทขึ้นไป", min: 130.01, max: 999999 }
+];
+
+function populateFilters() {
+    // Capacity
+    const capacities = [...new Set(productData.map(p => p.capacity))].filter(Boolean).sort();
+    initMultiselect(capacityMultiselect, capacityOptions, capacities, selectedCapacities, "ความจุทั้งหมด", "ความจุ", (vals) => {
+        selectedCapacities = vals;
+        applyFilters();
+    });
+
+    // Retail
+    initMultiselect(retailMultiselect, retailOptions, RETAIL_RANGES.map(r => r.label), selectedRetailRanges, "ราคาปลีกทั้งหมด", "ราคาปลีก", (vals) => {
+        selectedRetailRanges = vals;
+        applyFilters();
+    });
+
+    // Wholesale
+    initMultiselect(wholesaleMultiselect, wholesaleOptions, WHOLESALE_RANGES.map(r => r.label), selectedWholesaleRanges, "ราคาส่งทั้งหมด (100 ใบ+)", "ราคาส่ง (100 ใบ+)", (vals) => {
+        selectedWholesaleRanges = vals;
+        applyFilters();
+    });
+}
+
+function initMultiselect(container, optionsEl, values, selectedArray, defaultText, prefix, onChange) {
+    const triggerSpan = container.querySelector('.multiselect-trigger span');
+
+    // Update Trigger UI
+    const updateUI = () => {
+        if (selectedArray.length === 0) triggerSpan.textContent = defaultText;
+        else triggerSpan.textContent = `${prefix} (${selectedArray.length})`;
+    };
+    updateUI();
+
+    // Clear and Fill Options
+    optionsEl.innerHTML = '';
+    values.forEach(val => {
+        const item = document.createElement('label');
+        item.className = 'option-item';
+        const isChecked = selectedArray.includes(val);
+        item.innerHTML = `<input type="checkbox" value="${val}" ${isChecked ? 'checked' : ''}> ${val}`;
+
+        item.querySelector('input').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                if (!selectedArray.includes(val)) selectedArray.push(val);
+            } else {
+                const idx = selectedArray.indexOf(val);
+                if (idx > -1) selectedArray.splice(idx, 1);
+            }
+            updateUI();
+            onChange(selectedArray);
+        });
+        optionsEl.appendChild(item);
+    });
+
+    // Toggle Logic
+    if (!container.dataset.init) {
+        container.querySelector('.multiselect-trigger').addEventListener('click', (e) => {
+            document.querySelectorAll('.custom-multiselect').forEach(c => {
+                if (c !== container) c.classList.remove('open');
+            });
+            container.classList.toggle('open');
+            e.stopPropagation();
+        });
+        container.dataset.init = "true";
+    }
+}
+
+// Global click to close dropdowns
+document.addEventListener('click', () => {
+    document.querySelectorAll('.custom-multiselect').forEach(c => c.classList.remove('open'));
 });
+
+// Stop propagation on option clicks
+[capacityOptions, retailOptions, wholesaleOptions].forEach(el => {
+    el.addEventListener('click', (e) => e.stopPropagation());
+});
+
+function updateDropdown(el, values, defaultText) {
+    if (!el) return;
+    const currentVal = el.value;
+    el.innerHTML = `<option value="">${defaultText}</option>`;
+    values.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        el.appendChild(opt);
+    });
+    el.value = values.includes(currentVal) ? currentVal : "";
+}
+
+function isInRange(price, rangeLabels, config) {
+    if (rangeLabels.length === 0) return true;
+
+    const cleanPrice = String(price).replace(/[^\d.]/g, '');
+    const p = parseFloat(cleanPrice);
+    if (isNaN(p)) return false;
+
+    return rangeLabels.some(label => {
+        const range = config.find(r => r.label === label);
+        if (!range) return false;
+        return p >= range.min && p <= range.max;
+    });
+}
+
+function applyFilters() {
+    const searchTerm = searchInput.value.toLowerCase();
+
+    displayedProducts = productData.filter(product => {
+        const matchesSearch = product.sku.toLowerCase().includes(searchTerm) ||
+            product.name.toLowerCase().includes(searchTerm);
+
+        const matchesCap = selectedCapacities.length === 0 || selectedCapacities.includes(product.capacity);
+        const matchesRetail = isInRange(product.priceRetail, selectedRetailRanges, RETAIL_RANGES);
+        const matchesWholesale = isInRange(product.priceWholesale, selectedWholesaleRanges, WHOLESALE_RANGES);
+
+        return matchesSearch && matchesCap && matchesRetail && matchesWholesale;
+    });
+
+    renderProducts();
+}
+
+searchInput.addEventListener('input', applyFilters);
+
+const clearFiltersBtn = document.getElementById('clearFiltersBtn');
+clearFiltersBtn.addEventListener('click', () => {
+    selectedCapacities = [];
+    selectedRetailRanges = [];
+    selectedWholesaleRanges = [];
+    searchInput.value = '';
+    populateFilters();
+    applyFilters();
+});
+// filterRetail/Wholesale standard listeners are no longer needed as they are now custom divs
 
 // View Toggles
 gridBtn.addEventListener('click', () => {
@@ -124,96 +249,11 @@ listBtn.addEventListener('click', () => {
     gridBtn.classList.remove('active');
 });
 
-// Modal Actions
-window.openImageModal = (sku) => {
-    currentEditingSku = sku;
-    modalSkuEl.textContent = sku;
-    const imagesMap = getSavedImages();
-    const sizesMap = getSavedSizes();
-    const existingUrl = imagesMap[sku] || '';
-    const existingSize = sizesMap[sku] || '';
-
-    sizeInput.value = existingSize;
-    imageInput.value = existingUrl;
-    updatePreview(existingUrl);
-
-    modal.classList.add('show');
-};
-
-const closeImageModal = () => {
-    modal.classList.remove('show');
-    currentEditingSku = null;
-};
-
-closeModal.addEventListener('click', closeImageModal);
-window.addEventListener('click', (e) => {
-    if (e.target === modal) closeImageModal();
-});
-
-function updatePreview(url) {
-    if (url) {
-        imagePreview.src = url;
-        imagePreview.style.display = 'block';
-        placeholderText.style.display = 'none';
-        imagePreview.onerror = () => {
-            imagePreview.style.display = 'none';
-            placeholderText.style.display = 'block';
-            placeholderText.textContent = 'รูปภาพที่ URL นี้ไม่สามารถโหลดได้';
-        }
-    } else {
-        imagePreview.style.display = 'none';
-        placeholderText.style.display = 'block';
-        placeholderText.textContent = 'ตัวอย่างรูปภาพจะแสดงที่นี่';
-    }
-}
-
-imageInput.addEventListener('input', (e) => updatePreview(e.target.value));
-
-saveBtn.addEventListener('click', () => {
-    if (!currentEditingSku) return;
-    const url = imageInput.value.trim();
-    const sizeVal = sizeInput.value.trim();
-
-    const imgMap = getSavedImages();
-    if (url) imgMap[currentEditingSku] = url;
-    else delete imgMap[currentEditingSku];
-    saveImagesMap(imgMap);
-
-    const szMap = getSavedSizes();
-    if (sizeVal) szMap[currentEditingSku] = sizeVal;
-    else delete szMap[currentEditingSku];
-    saveSizesMap(szMap);
-
-    renderProducts();
-    closeImageModal();
-});
-
-removeBtn.addEventListener('click', () => {
-    if (!currentEditingSku) return;
-    const imgMap = getSavedImages();
-    delete imgMap[currentEditingSku];
-    saveImagesMap(imgMap);
-    const szMap = getSavedSizes();
-    delete szMap[currentEditingSku];
-    saveSizesMap(szMap);
-    renderProducts();
-    closeImageModal();
-});
 
 // Google Sheet Integration (JSONP)
-const syncSheetBtn = document.getElementById('syncSheetBtn');
+const SHEET_ID = '1rjKhc3mdidpe-kQpADVdVAUtcaakPaWHyGZffYvPG5w';
 
 function syncGoogleSheet(isAuto = false) {
-    const url = syncSheetBtn.getAttribute('data-url');
-    const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (!match) return;
-    const sheetId = match[1];
-
-    if (!isAuto) {
-        syncSheetBtn.textContent = 'กำลังซิงค์...';
-        syncSheetBtn.disabled = true;
-    }
-
     window.processGoogleSheetData = (data) => {
         try {
             if (data.status === 'error') throw new Error('Google API Error');
@@ -227,50 +267,48 @@ function syncGoogleSheet(isAuto = false) {
                 cols.forEach((col, i) => {
                     rowObj[col] = (r.c && r.c[i] && r.c[i].v != null) ? String(r.c[i].v) : "";
                 });
+
+                // Helper to find column by keyword
+                const findCol = (keywords) => {
+                    const foundKey = Object.keys(rowObj).find(k => keywords.every(kw => k.includes(kw)));
+                    return foundKey ? rowObj[foundKey] : null;
+                };
+
                 return {
-                    sku: rowObj["รหัสสินค้า (SKU)"] || "-",
-                    name: rowObj["ชื่อสินค้า (ภาษาไทย)"] || "-",
-                    material: rowObj["วัสดุ (เกรดสแตนเลส)"] || "-",
-                    capacity: rowObj["ความจุ"] || "-",
-                    stock: rowObj["สต็อก (ชิ้น/ลัง)"] || "-",
-                    size: rowObj["ขนาด (กxยxส)"] || "-",
-                    priceRetail: rowObj["ราคาขายปลีก (50 ชิ้น)"] || "-",
-                    priceWholesale: rowObj["ราคาขายส่ง (100+ ชิ้น)"] || "-",
-                    imageUrl: rowObj["URL รูปภาพ"] || ""
+                    sku: findCol(["รหัสสินค้า"]) || rowObj["sku"] || "-",
+                    name: findCol(["ชื่อสินค้า"]) || rowObj["name"] || "-",
+                    material: findCol(["วัสดุ"]) || "-",
+                    capacity: findCol(["ความจุ"]) || "-",
+                    size: findCol(["ขนาด"]) || "-",
+                    priceRetail: findCol(["ปลีก"]) || "-",
+                    priceWholesale: findCol(["ส่ง"]) || "-",
+                    imageUrl: findCol(["URL"]) || rowObj["imageUrl"] || ""
                 };
             });
 
             productData = newData;
             localStorage.setItem('productDatabase', JSON.stringify(productData));
             displayedProducts = [...productData];
+            populateFilters();
             renderProducts();
-            if (!isAuto) alert('อัปเดตข้อมูลสำเร็จ! พบสินค้า ' + newData.length + ' รายการ');
-
         } catch (e) {
-            if (!isAuto) alert('เกิดข้อผิดพลาดในการแปลข้อมูล');
+            console.error('Error parsing sheet data', e);
         } finally {
-            syncSheetBtn.textContent = 'อัปเดตข้อมูล (Google Sheet)';
-            syncSheetBtn.disabled = false;
             delete window.processGoogleSheetData;
         }
     };
 
     const script = document.createElement('script');
-    script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:processGoogleSheetData`;
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:processGoogleSheetData`;
     script.onerror = () => {
-        if (!isAuto) alert('ไม่สามารถเชื่อมต่อ Google Sheet ได้');
-        syncSheetBtn.textContent = 'อัปเดตข้อมูล (Google Sheet)';
-        syncSheetBtn.disabled = false;
+        console.error('Failed to connect to Google Sheet');
     };
     document.body.appendChild(script);
     script.onload = () => document.body.removeChild(script);
 }
 
-if (syncSheetBtn) {
-    syncSheetBtn.addEventListener('click', () => syncGoogleSheet(false));
-}
-
 // Init
+populateFilters();
 renderProducts();
 // Auto-sync on load
-if (syncSheetBtn) syncGoogleSheet(true);
+syncGoogleSheet(true);
