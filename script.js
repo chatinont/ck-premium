@@ -37,20 +37,23 @@ function renderProducts() {
     totalItemsEl.textContent = displayedProducts.length;
 
     displayedProducts.forEach(product => {
-        const imageUrl = product.imageUrl;
-        const sizeInfo = product.size || "-";
+        const automaticImageUrl = `./extracted_images/${product.sku}.png`;
+        const finalImageUrl = (product.imageUrl && product.imageUrl.startsWith('http')) ? product.imageUrl : automaticImageUrl;
 
         const card = document.createElement('div');
         card.className = 'product-card';
         card.innerHTML = `
             <div class="product-image-container">
-                ${imageUrl
-                ? `<img src="${imageUrl}" class="product-image" alt="${product.name}" onerror="this.src=''; this.parentElement.innerHTML='<div class=\\'image-placeholder-icon\\'><svg width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'3\\' y=\\'3\\' width=\\'18\\' height=\\'18\\' rx=\\'2\\' ry=\\'2\\'></rect><circle cx=\\'8.5\\' cy=\\'8.5\\' r=\\'1.5\\'></circle><polyline points=\\'21 15 16 10 5 21\\'></polyline></svg>ภาพเสีย</div>';">`
-                : `<div class="image-placeholder-icon">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                        <span>ไม่มีรูปภาพ</span>
-                       </div>`
-            }
+                <img src="${finalImageUrl}" class="product-image" alt="${product.name}" 
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="image-placeholder-icon" style="display: none;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <span>ไม่มีรูปภาพ</span>
+                </div>
             </div>
             <div class="product-info">
                 <div class="product-sku">${product.sku}</div>
