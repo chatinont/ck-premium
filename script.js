@@ -202,71 +202,75 @@ removeBtn.addEventListener('click', () => {
 
 // Google Sheet Integration (JSONP)
 const syncSheetBtn = document.getElementById('syncSheetBtn');
-if (syncSheetBtn) {
-    syncSheetBtn.addEventListener('click', () => {
-        const url = syncSheetBtn.getAttribute('data-url');
-        const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if (!match) return alert('กรุณาตรวจสอบลิงก์ Google Sheet ในไฟล์ index.html');
-        const sheetId = match[1];
 
+function syncGoogleSheet(isAuto = false) {
+    const url = syncSheetBtn.getAttribute('data-url');
+    const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (!match) return;
+    const sheetId = match[1];
+
+    if (!isAuto) {
         syncSheetBtn.textContent = 'กำลังซิงค์...';
         syncSheetBtn.disabled = true;
+    }
 
-        window.processGoogleSheetData = (data) => {
-            try {
-                if (data.status === 'error') throw new Error('Google API Error');
-                const cols = data.table.cols.map(c => c.label);
-                const rows = data.table.rows;
+    window.processGoogleSheetData = (data) => {
+        try {
+            if (data.status === 'error') throw new Error('Google API Error');
+            const cols = data.table.cols.map(c => c.label);
+            const rows = data.table.rows;
 
-                if (rows.length === 0) {
-                    alert('ไม่พบข้อมูลใน Google Sheet ครับ');
-                    return;
-                }
+            if (rows.length === 0) return;
 
-                const newData = rows.map(r => {
-                    let rowObj = {};
-                    cols.forEach((col, i) => {
-                        rowObj[col] = (r.c && r.c[i] && r.c[i].v != null) ? String(r.c[i].v) : "";
-                    });
-                    return {
-                        sku: rowObj["รหัสสินค้า (SKU)"] || "-",
-                        name: rowObj["ชื่อสินค้า (ภาษาไทย)"] || "-",
-                        material: rowObj["วัสดุ (เกรดสแตนเลส)"] || "-",
-                        capacity: rowObj["ความจุ"] || "-",
-                        stock: rowObj["สต็อก (ชิ้น/ลัง)"] || "-",
-                        size: rowObj["ขนาด (กxยxส)"] || "-",
-                        priceRetail: rowObj["ราคาขายปลีก (50 ชิ้น)"] || "-",
-                        priceWholesale: rowObj["ราคาขายส่ง (100+ ชิ้น)"] || "-",
-                        imageUrl: rowObj["URL รูปภาพ"] || ""
-                    };
+            const newData = rows.map(r => {
+                let rowObj = {};
+                cols.forEach((col, i) => {
+                    rowObj[col] = (r.c && r.c[i] && r.c[i].v != null) ? String(r.c[i].v) : "";
                 });
+                return {
+                    sku: rowObj["รหัสสินค้า (SKU)"] || "-",
+                    name: rowObj["ชื่อสินค้า (ภาษาไทย)"] || "-",
+                    material: rowObj["วัสดุ (เกรดสแตนเลส)"] || "-",
+                    capacity: rowObj["ความจุ"] || "-",
+                    stock: rowObj["สต็อก (ชิ้น/ลัง)"] || "-",
+                    size: rowObj["ขนาด (กxยxส)"] || "-",
+                    priceRetail: rowObj["ราคาขายปลีก (50 ชิ้น)"] || "-",
+                    priceWholesale: rowObj["ราคาขายส่ง (100+ ชิ้น)"] || "-",
+                    imageUrl: rowObj["URL รูปภาพ"] || ""
+                };
+            });
 
-                productData = newData;
-                localStorage.setItem('productDatabase', JSON.stringify(productData));
-                displayedProducts = [...productData];
-                renderProducts();
-                alert('อัปเดตข้อมูลสำเร็จ! พบสินค้า ' + newData.length + ' รายการ');
+            productData = newData;
+            localStorage.setItem('productDatabase', JSON.stringify(productData));
+            displayedProducts = [...productData];
+            renderProducts();
+            if (!isAuto) alert('อัปเดตข้อมูลสำเร็จ! พบสินค้า ' + newData.length + ' รายการ');
 
-            } catch (e) {
-                alert('เกิดข้อผิดพลาดในการแปลข้อมูล');
-            } finally {
-                syncSheetBtn.textContent = 'อัปเดตข้อมูล (Google Sheet)';
-                syncSheetBtn.disabled = false;
-                delete window.processGoogleSheetData;
-            }
-        };
-
-        const script = document.createElement('script');
-        script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:processGoogleSheetData`;
-        script.onerror = () => {
-            alert('ไม่สามารถเชื่อมต่อ Google Sheet ได้ กรุณาเช็คการแชร์ไฟล์');
+        } catch (e) {
+            if (!isAuto) alert('เกิดข้อผิดพลาดในการแปลข้อมูล');
+        } finally {
             syncSheetBtn.textContent = 'อัปเดตข้อมูล (Google Sheet)';
             syncSheetBtn.disabled = false;
-        };
-        document.body.appendChild(script);
-        script.onload = () => document.body.removeChild(script);
-    });
+            delete window.processGoogleSheetData;
+        }
+    };
+
+    const script = document.createElement('script');
+    script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json;responseHandler:processGoogleSheetData`;
+    script.onerror = () => {
+        if (!isAuto) alert('ไม่สามารถเชื่อมต่อ Google Sheet ได้');
+        syncSheetBtn.textContent = 'อัปเดตข้อมูล (Google Sheet)';
+        syncSheetBtn.disabled = false;
+    };
+    document.body.appendChild(script);
+    script.onload = () => document.body.removeChild(script);
+}
+
+if (syncSheetBtn) {
+    syncSheetBtn.addEventListener('click', () => syncGoogleSheet(false));
 }
 
 // Init
 renderProducts();
+// Auto-sync on load
+if (syncSheetBtn) syncGoogleSheet(true);
