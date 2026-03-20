@@ -39,6 +39,7 @@ function renderProducts() {
     displayedProducts.forEach(product => {
         const automaticImageUrl = `./extracted_images/${product.sku}.png`;
         const finalImageUrl = (product.imageUrl && product.imageUrl.startsWith('http')) ? product.imageUrl : automaticImageUrl;
+        const sizeInfo = product.size || "-";
 
         const card = document.createElement('div');
         card.className = 'product-card';
